@@ -107,8 +107,8 @@ window.onload = function() {
         navigator.mediaDevices.getUserMedia({
             video: {
                 width: 320,
-                height: 640
-
+                height: 640,
+                facingMode: { exact: "environment" }
             }
         }).then(gumSuccess).catch(gumFail);
     } else if (MediaDevices.getUserMedia) {
