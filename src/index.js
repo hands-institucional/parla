@@ -41,9 +41,9 @@ window.onload = function() {
 
     // check whether browser supports webGL
     var webGLContext;
-    if (window.WebGLRenderingContext) {
+    if (window.WebGLRenderingContext || window.WebGL2RenderingContext) {
         webGLContext = webgl_overlay.getContext('webgl') || webgl_overlay.getContext('experimental-webgl');
-        if (!webGLContext || !webGLContext.getExtension('OES_texture_float')) {
+        if (!webGLContext) {
             webGLContext = null;
         }
     }
@@ -99,7 +99,7 @@ window.onload = function() {
         alert("There was some problem trying to fetch video from your webcam, using a fallback video instead.");
     }
 
-    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+    MediaDevices.getUserMedia = MediaDevices.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
     window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
     
     // set up video
@@ -111,8 +111,8 @@ window.onload = function() {
 
             }
         }).then(gumSuccess).catch(gumFail);
-    } else if (navigator.getUserMedia) {
-        navigator.getUserMedia({video : true}, gumSuccess, gumFail);
+    } else if (MediaDevices.getUserMedia) {
+        MediaDevices.getUserMedia({video : true}, gumSuccess, gumFail);
     } else {
         insertAltVideo(vid);
         document.getElementById('gum').className = "hide";
@@ -241,7 +241,7 @@ window.onload = function() {
             var newPos = pos.concat(addPos);
             var newVertices = pModel.path.vertices.concat(mouth_vertices);
             // merge with newVertices
-            // newVertices = newVertices.concat(extendVertices);
+            newVertices = newVertices.concat(extendVertices);
             fd.load(videocanvas, newPos, pModel, newVertices);
             var parameters = ctrack.getCurrentParameters();
 
@@ -261,21 +261,21 @@ window.onload = function() {
             
             parameters[6] = curValA;
 
-            // if(dirB == true){
-            //     curValB += 4;
-            // } else {
-            //     curValB -= 4;
-            // }
+            if(dirB == true){
+                curValB += 4;
+            } else {
+                curValB -= 4;
+            }
             
-            // if(curValB <= minValB && dirB == false) {
-            //     dirB = true
-            // }
+            if(curValB <= minValB && dirB == false) {
+                dirB = true
+            }
 
-            // if(curValB >= maxValB && dirB == true) {
-            //     dirB = false
-            // }
+            if(curValB >= maxValB && dirB == true) {
+                dirB = false
+            }
 
-            // parameters[7] = curValB;
+            parameters[7] = curValB;
 
             // for (var i = 6;i < parameters.length;i++) {
             //     parameters[i] += ph['component '+(i-3)];

@@ -3,6 +3,16 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+}
+
+body.lock-position {
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
+  position: fixed;
+}
+
+* {
   overflow: hidden;
 }
 
