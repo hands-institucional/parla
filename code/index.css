@@ -1,0 +1,30 @@
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+video {
+  -o-object-fit: cover;
+     object-fit: cover;
+}
+
+canvas {
+  top: 0px;
+  left: 0px;
+}
+
+video, canvas {
+  position: absolute;
+  left: 50%;
+  -webkit-transform: translateX(-50%);
+  transform: translateX(-50%);
+  -ms-filter: fliph;
+  /*IE*/
+  -webkit-filter: fliph;
+          filter: fliph;
+  /*IE*/
+}
+/*# sourceMappingURL=index.css.map */
