@@ -108,7 +108,7 @@ window.onload = function() {
             video: {
                 width: 320,
                 height: 640,
-                facingMode: { exact: "environment" }
+                facingMode: "environment"
             }
         }).then(gumSuccess).catch(gumFail);
     } else if (MediaDevices.getUserMedia) {
