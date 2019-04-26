@@ -1,23 +1,20 @@
 html, body {
-    width: 100%;
-    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     margin: 0;
     padding: 0;
-}
-
-body.lock-position {
-    height: 100%;
-    overflow: hidden;
-    width: 100%;
-    position: fixed;
-}
-
-* {
     overflow: hidden;
 }
 
-video {
+video, canvas {
+    overflow: hidden;
     object-fit: cover;
+    min-width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    max-height: 100%;
 }
 
 canvas {
@@ -27,10 +24,51 @@ canvas {
 
 video, canvas {
     position: absolute;
+    top: 0px;
     left: 50%;
     -o-transform: translateX(-50%);
     -webkit-transform: translateX(-50%);
     transform: translateX(-50%);
-    -ms-filter : fliph; /*IE*/
-    filter : fliph; /*IE*/
+}
+
+.select {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    background-color: #fff;
+    z-index: 9999;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    font-size: 18px;
+    min-width: 100%;
+    max-width: 100%;
+    transform: translateX(-50%);
+    text-align: left;
+
+
+    label {
+        font-weight: 500;
+        padding-left: 25px;
+        padding-right: 30px;
+    }
+
+}
+
+#parla {
+    position: absolute;
+    z-index: 999999;
+    top: 0;
+    left: 50%;
+    width: 250px;
+    height: 50px;
+    outline: none;
+    border: none;
+    font-size: 18px;
+    transform: translateX(-50%);
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    background-color: #fff;
+
+    &.disabled {
+        color: grey;
+        background-color: lightgrey;
+    }
 }

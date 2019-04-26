@@ -10,6 +10,9 @@ window.onload = function() {
     var overlay = document.getElementById('overlay');
     var webgl_overlay = document.getElementById('webgl');
     var overlayCC = overlay.getContext('2d');
+    var videoSelect = document.querySelector("select#videoSource");
+    var audio = document.querySelector('#audioel')
+    var selectors = [videoSelect];
 
     vid.width = window.screen.width;
     vid.height = window.screen.height;
@@ -51,28 +54,44 @@ window.onload = function() {
         alert("Your browser does not seem to support WebGL. Unfortunately this face mask example depends on WebGL, so you'll have to try it in another browser. :(");
     }
 
-    function adjustVideoProportions() {
 
-        // resize overlay and video if proportions of video are not 4:3
-        // keep same height, just change width
-        var proportion = vid.videoWidth/vid.videoHeight;
-        vid_width = Math.round(vid_height * proportion);
-        vid.width = vid_width;
-        overlay.width = vid_width;
-        webgl_overlay.width = vid_width;
-        videocanvas.width = vid_width;
-        webGLContext.viewport(0,0,webGLContext.canvas.width,webGLContext.canvas.height);
 
+
+    'use strict';
+
+    function gotDevices(deviceInfos) {
+        // Handles being called several times to update labels. Preserve values.
+        const values = selectors.map(select => select.value);
+        selectors.forEach(select => {
+            while (select.firstChild) {
+            select.removeChild(select.firstChild);
+            }
+        });
+        for (let i = 0; i !== deviceInfos.length; ++i) {
+            const deviceInfo = deviceInfos[i];
+            const option = document.createElement('option');
+            option.value = deviceInfo.deviceId;
+            if (deviceInfo.kind === 'videoinput') {
+            option.text = deviceInfo.label || `camera ${videoSelect.length + 1}`;
+            videoSelect.appendChild(option);
+            } else {
+                console.log('Some other kind of source/device: ', deviceInfo);
+            }
+        }
+
+        selectors.forEach((select, selectorIndex) => {
+            if (Array.prototype.slice.call(select.childNodes).some(n => n.value === values[selectorIndex])) {
+                select.value = values[selectorIndex];
+            }
+        });
     }
 
-    function gumSuccess( stream ) {
-        
-        // add camera stream if getUserMedia succeeded
-        if ("srcObject" in vid) {
-            vid.srcObject = stream;
-        } else {
-            vid.src = (window.URL && window.URL.createObjectURL(stream));
-        }
+    navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+
+    function gotStream(stream) {
+        window.stream = stream; // make stream available to console
+        vid.srcObject = stream;
+        // Refresh button list in case labels have become available
 
         vid.onloadedmetadata = function() {
             adjustVideoProportions();
@@ -88,37 +107,77 @@ window.onload = function() {
                 ctrack.start(vid);
             }
         }
+
+        return navigator.mediaDevices.enumerateDevices();
     }
 
-    function gumFail() {
+    function handleError(error) {
+        console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+    }
 
-        // fall back to video if getUserMedia failed
-        insertAltVideo(vid);
-        document.getElementById('gum').className = "hide";
-        document.getElementById('nogum').className = "nohide";
-        alert("There was some problem trying to fetch video from your webcam, using a fallback video instead.");
+    function adjustVideoProportions() {
+
+        // resize overlay and video if proportions of video are not 4:3
+        // keep same height, just change width
+        var proportion = vid.videoWidth/vid.videoHeight;
+        vid_width = Math.round(vid_height * proportion);
+        vid.width = vid_width;
+        overlay.width = vid_width;
+        webgl_overlay.width = vid_width;
+        videocanvas.width = vid_width;
+        webGLContext.viewport(0,0,webGLContext.canvas.width,webGLContext.canvas.height);
+
     }
 
     MediaDevices.getUserMedia = MediaDevices.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
     window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
     
-    // set up video
-    if (navigator.mediaDevices) {
-        navigator.mediaDevices.getUserMedia({
+    function start(param) {
+        if (window.stream) {
+            window.stream.getTracks().forEach(track => {
+                track.stop();
+            });
+        }
+
+        const videoSource = videoSelect.value;
+        const constraints = {
             video: {
-                width: 320,
-                height: 640,
-                facingMode: "environment"
+                width: window.screen.width,
+                height: window.screen.height,
+                deviceId: videoSource ? {exact: videoSource} : undefined
             }
-        }).then(gumSuccess).catch(gumFail);
-    } else if (MediaDevices.getUserMedia) {
-        MediaDevices.getUserMedia({video : true}, gumSuccess, gumFail);
-    } else {
-        insertAltVideo(vid);
-        document.getElementById('gum').className = "hide";
-        document.getElementById('nogum').className = "nohide";
-        alert("Your browser does not seem to support getUserMedia, using a fallback video instead.");
+        };
+        if (param === 'default') {
+            navigator.mediaDevices.getUserMedia(constraints).then(gotStream).then(gotDevices).then(changeDefault).catch(handleError);
+        } else {
+            navigator.mediaDevices.getUserMedia(constraints).then(gotStream).then(gotDevices).catch(handleError);
+        }
     }
+
+    function changeDefault() {
+
+        if (window.stream) {
+            window.stream.getTracks().forEach(track => {
+                track.stop();
+            });
+        }
+
+        videoSelect.value = videoSelect.lastChild
+        console.log(videoSelect)
+        const videoSource = videoSelect.lastChild.value;
+        const constraints = {
+            video: {
+                width: window.screen.width,
+                height: window.screen.height,
+                deviceId: {exact: videoSource}
+            }
+        };
+        navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
+    }
+
+    videoSelect.onchange = start;
+    start('default');
+
     vid.addEventListener('canplay', enablestart, false);
     
     var ctrack = new clm.tracker();
@@ -217,11 +276,21 @@ window.onload = function() {
         }
         // check whether mask has converged
         var pn = ctrack.getConvergence();
-        if (pn < 0.4) {
+        if (pn < 1) {
             drawMaskLoop();
+            // enableParla();
         } else {
             window.requestAnimationFrame(drawGridLoop);
+            // disableParla();
         }
+    }
+
+    function enableParla() {
+        audio.classList.remove('disabled');
+    }
+
+    function disableParla() {
+        audio.classList.add('disabled');
     }
 
     function drawMaskLoop() {

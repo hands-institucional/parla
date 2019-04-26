@@ -15,11 +15,17 @@
 		<script src="src/vendor/libs/webgl-utils.js"></script>
 		<script src="src/vendor/libs/jquery.min.js"></script>
 		<script src="src/vendor/libs/poisson_new.js"></script>
-
 		<script src="src/vendor/libs/dat.gui.min.js"></script>
 		<script src="src/vendor/libs/Stats.js"></script>
 
+		<button type="button" id="parla" class="disabled">Parla!</button>
+
+		<div class="select">
+			<label for="videoSource">Select Camera: </label><select id="videoSource"></select>
+		</div>
+		
 		<video id="videoel" preload="auto" loop playsinline autoplay></video>
+		<audio id="audioel" src="assets/track.wav" autoplay loop></audio>
 		<canvas id="overlay"></canvas>
 		<canvas id="webgl"></canvas>
 	</body>
