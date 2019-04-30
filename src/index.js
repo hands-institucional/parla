@@ -11,15 +11,24 @@ window.onload = function() {
     var webgl_overlay = document.getElementById('webgl');
     var overlayCC = overlay.getContext('2d');
     var videoSelect = document.querySelector("select#videoSource");
-    var audio = document.querySelector('#audioel')
+    var audio = document.querySelector('#audioel');
+    var button = document.querySelector('#parla');
     var selectors = [videoSelect];
+    var speaking = false;
+    var isPlaying = false;
+
+    var calculatedHeight;
+
+    if(window.screen.height > window.screen.width) {
+        calculatedHeight = window.screen.width - (window.screen.height - window.innerHeight);
+    } else calculatedHeight = window.innerHeight;
 
     vid.width = window.screen.width;
-    vid.height = window.screen.height;
+    vid.height = calculatedHeight;
     overlay.width = window.screen.width;
-    overlay.height = window.screen.height;
+    overlay.height = vid.height;
     webgl_overlay.width = window.screen.width;
-    webgl_overlay.height = window.screen.height;
+    webgl_overlay.height = vid.height;
     var vid_width = vid.width;
     var vid_height = vid.height;
     var dirA = true;
@@ -32,10 +41,15 @@ window.onload = function() {
     var maxValB = 10;
     var curValB = 10;
 
+    var fps, fpsInterval, startTime, now, then, elapsed;
+
     // canvas for copying videoframes to
     var videocanvas = document.createElement('CANVAS');
     videocanvas.width = vid_width;
     videocanvas.height = vid_height;
+
+    button.addEventListener('click', parlare);
+    window.addEventListener('resize', adjustVideoProportions);
 
     /*********** Setup of video/webcam and checking for webGL support *********/
     function enablestart() {
@@ -44,18 +58,17 @@ window.onload = function() {
 
     // check whether browser supports webGL
     var webGLContext;
+
     if (window.WebGLRenderingContext || window.WebGL2RenderingContext) {
         webGLContext = webgl_overlay.getContext('webgl') || webgl_overlay.getContext('experimental-webgl');
         if (!webGLContext) {
             webGLContext = null;
         }
     }
+
     if (webGLContext == null) {
         alert("Your browser does not seem to support WebGL. Unfortunately this face mask example depends on WebGL, so you'll have to try it in another browser. :(");
     }
-
-
-
 
     'use strict';
 
@@ -64,18 +77,18 @@ window.onload = function() {
         const values = selectors.map(select => select.value);
         selectors.forEach(select => {
             while (select.firstChild) {
-            select.removeChild(select.firstChild);
+                select.removeChild(select.firstChild);
             }
         });
+
         for (let i = 0; i !== deviceInfos.length; ++i) {
             const deviceInfo = deviceInfos[i];
             const option = document.createElement('option');
             option.value = deviceInfo.deviceId;
+
             if (deviceInfo.kind === 'videoinput') {
             option.text = deviceInfo.label || `camera ${videoSelect.length + 1}`;
             videoSelect.appendChild(option);
-            } else {
-                console.log('Some other kind of source/device: ', deviceInfo);
             }
         }
 
@@ -163,7 +176,6 @@ window.onload = function() {
         }
 
         videoSelect.value = videoSelect.lastChild
-        console.log(videoSelect)
         const videoSource = videoSelect.lastChild.value;
         const constraints = {
             video: {
@@ -267,33 +279,53 @@ window.onload = function() {
     ]
 
     function drawGridLoop() {
-        // get position of face
+
+        var frameId = requestAnimationFrame(drawGridLoop);
+        now = Date.now();
+        elapsed = now - then;
+        if (elapsed > fpsInterval) {
+            then = now - (elapsed % fpsInterval);
+        }
+        
         positions = ctrack.getCurrentPosition();
         overlayCC.clearRect(0, 0, vid_width, vid_height);
         if (positions) {
-            // draw current grid
             ctrack.draw(overlay);
         }
-        // check whether mask has converged
+
         var pn = ctrack.getConvergence();
-        if (pn < 1) {
-            drawMaskLoop();
-            // enableParla();
+        if (pn < 20000) {
+            enableParla();
         } else {
-            window.requestAnimationFrame(drawGridLoop);
-            // disableParla();
+            disableParla();
         }
+
     }
 
     function enableParla() {
-        audio.classList.remove('disabled');
+        button.disabled = false;
     }
 
     function disableParla() {
-        audio.classList.add('disabled');
+        button.disabled = true;
+    }
+
+    function parlare() {
+        if(!speaking) {
+            speaking = true;
+            drawMaskLoop();
+        }
     }
 
     function drawMaskLoop() {
+
+        var frameId = requestAnimationFrame(drawMaskLoop);
+        now = Date.now();
+        elapsed = now - then;
+        if (elapsed > fpsInterval) {
+            then = now - (elapsed % fpsInterval);
+        }
+
         videocanvas.getContext('2d').drawImage(vid,0,0,videocanvas.width,videocanvas.height);
         var pos = ctrack.getCurrentPosition();
         if (pos) {
@@ -315,9 +347,9 @@ window.onload = function() {
             var parameters = ctrack.getCurrentParameters();
 
             if(dirA == true){
-                curValA += 4;
+                curValA += 8;
             } else {
-                curValA -= 4;
+                curValA -= 8;
             }
             
             if(curValA <= minValA && dirA == false) {
@@ -331,9 +363,9 @@ window.onload = function() {
             parameters[6] = curValA;
 
             if(dirB == true){
-                curValB += 4;
+                curValB += 2;
             } else {
-                curValB -= 4;
+                curValB -= 2;
             }
             
             if(curValB <= minValB && dirB == false) {
@@ -358,8 +390,24 @@ window.onload = function() {
                 fd.draw(newPos);
             }
         }
+        var pn = ctrack.getConvergence();
 
-        animationRequest = window.requestAnimationFrame(drawMaskLoop);
+        if(pn < 99999 && audio.currentTime < audio.duration) {
+            animationRequest = window.requestAnimationFrame(drawMaskLoop);
+            if(!isPlaying) {
+                audio.play();
+            }
+        } else {
+            var webCTX = webgl_overlay.getContext('webgl');
+            webCTX.clear(webCTX.COLOR_BUFFER_BIT);
+            window.cancelAnimationFrame(animationRequest);
+            window.requestAnimationFrame(drawGridLoop);
+            speaking = false;
+            audio.pause();
+            audio.currentTime = 0;
+        }
+
+        window.cancelAnimationFrame(frameId);
     }
 
 }
